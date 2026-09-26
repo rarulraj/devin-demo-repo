@@ -10,7 +10,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   admin: "Full access, including feature flag changes",
-  reviewer: "Reviews KYC cases and refund requests",
+  reviewer: "Reviews KYC cases and refunds, and requests limit changes",
   readonly: "View-only access across all applications",
 };
 
@@ -24,6 +24,10 @@ export const PERMISSIONS = [
   "refund.reject",
   "flag.view",
   "flag.update",
+  "limit.view",
+  "limit.request",
+  "limit.approve",
+  "limit.reject",
   "audit.view",
 ] as const;
 
@@ -33,6 +37,7 @@ const VIEW_PERMISSIONS: Permission[] = [
   "kyc.view",
   "refund.view",
   "flag.view",
+  "limit.view",
   "audit.view",
 ];
 
@@ -43,6 +48,7 @@ const REVIEWER_PERMISSIONS: Permission[] = [
   "kyc.escalate",
   "refund.approve",
   "refund.reject",
+  "limit.request",
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
@@ -61,6 +67,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "refund.reject": "Reject refunds",
   "flag.view": "View feature flags",
   "flag.update": "Change feature flags",
+  "limit.view": "View transaction limits",
+  "limit.request": "Request transaction limit changes",
+  "limit.approve": "Approve limit changes",
+  "limit.reject": "Reject limit changes",
   "audit.view": "View the audit log",
 };
 

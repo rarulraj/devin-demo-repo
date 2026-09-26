@@ -1,4 +1,4 @@
-import { FileSearch, Flag, LayoutGrid, ReceiptText, ScrollText } from "lucide-react";
+import { FileSearch, Flag, Gauge, LayoutGrid, ReceiptText, ScrollText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Permission } from "./rbac";
 
@@ -72,6 +72,17 @@ export const APP_REGISTRY = [
     owner: "Platform Engineering",
     kind: "business",
     writePermissions: ["flag.update"],
+    status: "available",
+  },
+  {
+    id: "limits",
+    name: "Transaction Limits",
+    href: "/limits",
+    icon: Gauge,
+    summary: "Daily transaction limits and pending limit-change requests",
+    owner: "Risk Operations",
+    kind: "business",
+    writePermissions: ["limit.request", "limit.approve", "limit.reject"],
     status: "available",
   },
   {
