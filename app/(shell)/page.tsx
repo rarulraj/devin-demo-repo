@@ -2,6 +2,8 @@ import { ArrowRight, Check, Minus } from "lucide-react";
 import Link from "next/link";
 import { listKycCases } from "@/lib/data/kyc-store";
 import { isOpen, riskLevel } from "@/lib/data/kyc-types";
+import { listRefunds } from "@/lib/data/refund-store";
+import { formatAmount, isPending } from "@/lib/data/refund-types";
 import { ensureSeedData } from "@/lib/data/seed";
 import { formatRelative } from "@/lib/utils";
 import { auditActivity, listAuditEvents } from "@/platform/audit";
@@ -35,6 +37,8 @@ export default async function OverviewPage() {
   const activity = auditActivity(24);
   const openKyc = listKycCases().filter(isOpen);
   const highRiskKyc = openKyc.filter((entry) => riskLevel(entry.riskScore) === "high");
+  const pendingRefunds = listRefunds().filter(isPending);
+  const pendingRefundValue = pendingRefunds.reduce((total, row) => total + row.amountMinor, 0);
 
   const metrics: { label: string; value: string | number; hint: string; href?: string }[] = [
     {
@@ -43,7 +47,12 @@ export default async function OverviewPage() {
       hint: `${highRiskKyc.length} high risk`,
       href: "/kyc",
     },
-    { label: "Refund requests", value: "—", hint: "Queue arrives with the Refunds application" },
+    {
+      label: "Refunds awaiting decision",
+      value: pendingRefunds.length,
+      hint: `${formatAmount(pendingRefundValue)} at risk`,
+      href: "/refunds",
+    },
     {
       label: "Actions recorded (24h)",
       value: activity.total,

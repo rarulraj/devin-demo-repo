@@ -61,7 +61,7 @@ export const APP_REGISTRY = [
     owner: "Payments Ops",
     kind: "business",
     writePermissions: ["refund.approve", "refund.reject"],
-    status: "planned",
+    status: "available",
   },
   {
     id: "flags",

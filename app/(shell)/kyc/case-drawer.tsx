@@ -10,8 +10,8 @@ import type { KycDecision } from "@/lib/kyc/decisions";
 import { formatTimestamp, formatRelative } from "@/lib/utils";
 import { ROLE_LABELS, can, type Role } from "@/platform/rbac";
 import { Button } from "@/platform/ui/button";
+import { DrawerFocus } from "@/platform/ui/drawer-focus";
 import { DecisionActions } from "./decision-actions";
-import { DrawerFocus } from "./drawer-focus";
 import { RiskTag, CheckIcon, StatusTag } from "./indicators";
 
 const DECISION_BUTTONS = [
@@ -113,7 +113,7 @@ export function CaseDrawer({
       aria-label={`Case ${kycCase.id}`}
       className="fixed right-0 top-12 z-30 flex h-[calc(100%-3rem)] w-[540px] flex-col border-l border-line bg-surface shadow-[-8px_0_24px_-16px_rgba(15,23,42,0.35)]"
     >
-      <DrawerFocus caseId={kycCase.id} />
+      <DrawerFocus returnTo={`case=${kycCase.id}`} />
       <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
