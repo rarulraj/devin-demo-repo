@@ -46,8 +46,13 @@ export function userForRole(role: Role): SimulatedUser {
 }
 
 /**
- * Simulated session for the prototype. A real deployment would resolve this
- * from the identity provider; every consumer below stays unchanged.
+ * Simulated session for the prototype.
+ *
+ * PRODUCTION DELTA: the role lives in a browser-settable cookie so the demo can
+ * switch users; it is not authentication and anyone can choose any role here.
+ * A real deployment resolves this from trusted identity-provider session claims
+ * verified on the server. Nothing else changes: application code never names an
+ * actor, it only calls mutate(), which resolves the actor through this function.
  */
 export async function getSession(): Promise<SimulatedUser> {
   const store = await cookies();

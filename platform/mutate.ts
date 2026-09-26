@@ -1,10 +1,13 @@
-import { recordAudit, type AuditEvent } from "./audit";
+import {
+  recordAuditEvent,
+  type AuditEvent,
+  type AuditSource,
+} from "./internal/audit-store";
 import { AuthorizationError, assertCan, type Permission } from "./rbac";
-import type { AppId } from "./registry";
-import type { SimulatedUser } from "./session";
+import { getSession } from "./session";
 
 export type MutationSpec<T> = {
-  app: AppId;
+  app: AuditSource;
   /** Human-readable action name, e.g. "Approve refund". */
   action: string;
   permission: Permission;
@@ -15,7 +18,8 @@ export type MutationSpec<T> = {
   reason?: string;
   before?: string;
   after?: string;
-  apply: () => T;
+  /** May be async: real datastore writes return promises. */
+  apply: () => T | Promise<T>;
 };
 
 export type MutationResult<T> =
@@ -25,31 +29,15 @@ export type MutationResult<T> =
 /**
  * The single write path for every internal application.
  *
- * authorize -> apply -> audit, in that order, with denials recorded too.
- * Applications must not mutate state outside this function; that is what makes
- * RBAC and the audit trail platform guarantees rather than per-app conventions.
+ * resolve actor -> authorize -> apply -> audit, with denials and failures
+ * recorded too. Applications describe the operation they want; they never say
+ * who they are acting as, so an application cannot escalate its own privileges
+ * by constructing a different user. In production the resolved actor comes from
+ * trusted identity-provider session claims instead of the simulated cookie.
  */
-export function mutate<T>(actor: SimulatedUser, spec: MutationSpec<T>): MutationResult<T> {
-  try {
-    assertCan(actor.role, spec.permission);
-  } catch (error) {
-    if (!(error instanceof AuthorizationError)) throw error;
-    const event = recordAudit({
-      actor: actor.name,
-      role: actor.role,
-      app: spec.app,
-      action: spec.action,
-      permission: spec.permission,
-      entity: spec.entity,
-      entityLabel: spec.entityLabel,
-      outcome: "denied",
-      reason: spec.reason,
-    });
-    return { ok: false, error: error.message, event };
-  }
-
-  const data = spec.apply();
-  const event = recordAudit({
+export async function mutate<T>(spec: MutationSpec<T>): Promise<MutationResult<T>> {
+  const actor = await getSession();
+  const entry = {
     actor: actor.name,
     role: actor.role,
     app: spec.app,
@@ -57,10 +45,29 @@ export function mutate<T>(actor: SimulatedUser, spec: MutationSpec<T>): Mutation
     permission: spec.permission,
     entity: spec.entity,
     entityLabel: spec.entityLabel,
-    outcome: "success",
     reason: spec.reason,
-    before: spec.before,
-    after: spec.after,
-  });
-  return { ok: true, data, event };
+  };
+
+  try {
+    assertCan(actor.role, spec.permission);
+  } catch (error) {
+    if (!(error instanceof AuthorizationError)) throw error;
+    const event = recordAuditEvent({ ...entry, outcome: "denied" });
+    return { ok: false, error: error.message, event };
+  }
+
+  try {
+    const data = await spec.apply();
+    const event = recordAuditEvent({
+      ...entry,
+      outcome: "success",
+      before: spec.before,
+      after: spec.after,
+    });
+    return { ok: true, data, event };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Operation failed";
+    const event = recordAuditEvent({ ...entry, outcome: "error" });
+    return { ok: false, error: message, event };
+  }
 }

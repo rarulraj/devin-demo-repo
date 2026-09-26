@@ -2,22 +2,25 @@ import { FileSearch, Flag, LayoutGrid, ReceiptText, ScrollText } from "lucide-re
 import type { LucideIcon } from "lucide-react";
 import type { Permission } from "./rbac";
 
-export type AppStatus = "available" | "not-implemented";
+/** Delivery state of an application, not a statement about who may use it. */
+export type AppStatus = "available" | "planned";
 
-export type AppId = "overview" | "kyc" | "refunds" | "flags" | "audit" | "platform";
+export type AppKind = "business" | "platform";
 
 export type RegisteredApp = {
-  id: AppId;
+  id: string;
   name: string;
   href: string;
   icon: LucideIcon;
   /** One line shown on the Overview page and as the nav tooltip. */
   summary: string;
   owner: string;
-  /** Permission required to see the app at all. */
-  viewPermission: Permission | null;
-  /** Permissions this app mutates through, surfaced on Overview for explainability. */
-  writePermissions: Permission[];
+  kind: AppKind;
+  /**
+   * Permissions this app mutates through. Every role may read every
+   * application; roles differ only in which of these actions they may perform.
+   */
+  writePermissions: readonly Permission[];
   status: AppStatus;
 };
 
@@ -26,7 +29,7 @@ export type RegisteredApp = {
  * Navigation, the Overview page and access checks are all derived from this list,
  * so registering a new internal application is a one-entry change.
  */
-export const APP_REGISTRY: RegisteredApp[] = [
+export const APP_REGISTRY = [
   {
     id: "overview",
     name: "Overview",
@@ -34,7 +37,7 @@ export const APP_REGISTRY: RegisteredApp[] = [
     icon: LayoutGrid,
     summary: "Operational snapshot across all internal applications",
     owner: "Internal Tools",
-    viewPermission: null,
+    kind: "platform",
     writePermissions: [],
     status: "available",
   },
@@ -45,9 +48,9 @@ export const APP_REGISTRY: RegisteredApp[] = [
     icon: FileSearch,
     summary: "Identity verification queue for onboarding customers",
     owner: "Financial Crime Ops",
-    viewPermission: "kyc.view",
+    kind: "business",
     writePermissions: ["kyc.approve", "kyc.reject", "kyc.escalate"],
-    status: "not-implemented",
+    status: "planned",
   },
   {
     id: "refunds",
@@ -56,9 +59,9 @@ export const APP_REGISTRY: RegisteredApp[] = [
     icon: ReceiptText,
     summary: "Refund requests awaiting operations approval",
     owner: "Payments Ops",
-    viewPermission: "refund.view",
+    kind: "business",
     writePermissions: ["refund.approve", "refund.reject"],
-    status: "not-implemented",
+    status: "planned",
   },
   {
     id: "flags",
@@ -67,9 +70,9 @@ export const APP_REGISTRY: RegisteredApp[] = [
     icon: Flag,
     summary: "Runtime configuration for product and risk systems",
     owner: "Platform Engineering",
-    viewPermission: "flag.view",
+    kind: "business",
     writePermissions: ["flag.update"],
-    status: "not-implemented",
+    status: "planned",
   },
   {
     id: "audit",
@@ -78,22 +81,36 @@ export const APP_REGISTRY: RegisteredApp[] = [
     icon: ScrollText,
     summary: "Immutable record of every privileged action",
     owner: "Internal Tools",
-    viewPermission: "audit.view",
+    kind: "platform",
     writePermissions: [],
     status: "available",
   },
-];
+] as const satisfies readonly RegisteredApp[];
 
+/** Derived from the registry, so an unregistered id cannot be constructed. */
+export type AppId = (typeof APP_REGISTRY)[number]["id"];
+
+export function findApp(id: string): RegisteredApp | undefined {
+  return APP_REGISTRY.find((entry) => entry.id === id);
+}
+
+/** For pages that belong to a known application; the id type rules out typos. */
 export function getApp(id: AppId): RegisteredApp {
-  const app = APP_REGISTRY.find((entry) => entry.id === id);
-  if (!app) throw new Error(`Unknown application: ${id}`);
-  return app;
+  return findApp(id)!;
+}
+
+/**
+ * Display name for any audit source. System events are not registered
+ * applications, so the audit log labels them rather than failing to render.
+ */
+export function appLabel(id: string): string {
+  return findApp(id)?.name ?? "Platform";
 }
 
 /** Apps shown in the left navigation, in registration order. */
-export const NAV_APPS = APP_REGISTRY;
+export const NAV_APPS: readonly RegisteredApp[] = APP_REGISTRY;
 
-/** Business applications, i.e. everything except platform-level surfaces. */
-export const BUSINESS_APPS = APP_REGISTRY.filter(
-  (app) => app.id !== "overview" && app.id !== "audit",
+/** The internal tools themselves, as opposed to platform surfaces. */
+export const BUSINESS_APPS: readonly RegisteredApp[] = APP_REGISTRY.filter(
+  (app) => app.kind === "business",
 );

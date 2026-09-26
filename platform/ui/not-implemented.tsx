@@ -19,7 +19,7 @@ export function NotImplementedApp({ app, role }: { app: RegisteredApp; role: Rol
         description={app.summary}
         meta={
           <>
-            <StatusBadge tone="neutral">Not implemented</StatusBadge>
+            <StatusBadge tone="neutral">Coming in this prototype</StatusBadge>
             <span className="text-[12px] text-ink-muted">Owned by {app.owner}</span>
           </>
         }
@@ -28,20 +28,15 @@ export function NotImplementedApp({ app, role }: { app: RegisteredApp; role: Rol
         <Panel>
           <div className="px-4 py-3">
             <p className="text-[13px] text-ink">
-              This application is registered in the platform but its workflow is not part of the
-              current build.
-            </p>
-            <p className="mt-1 text-[12.5px] text-ink-muted">
-              Navigation, authorization and audit logging are already provided by the shell, so
-              building it means adding the data model, the table and the actions — not a new
-              security or audit architecture.
+              {app.name} is not available yet. Every role will be able to open and read it; the
+              actions below are what each role will be allowed to perform.
             </p>
           </div>
         </Panel>
 
         <Panel
-          title="Authorization contract"
-          description="Enforced server-side by the shared mutation path once the actions are implemented."
+          title="Actions and who may perform them"
+          description="Checked server-side on every attempt, not just hidden in the interface."
         >
           <table className="w-full border-collapse border-t border-line text-[13px]">
             <thead>
@@ -78,9 +73,9 @@ export function NotImplementedApp({ app, role }: { app: RegisteredApp; role: Rol
                           Allowed
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-ink-subtle">
+                        <span className="inline-flex items-center gap-1 text-ink-muted">
                           <Minus aria-hidden className="size-3.5" />
-                          Denied
+                          Not allowed
                         </span>
                       )}
                     </td>

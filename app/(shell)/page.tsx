@@ -10,20 +10,20 @@ import {
   type Permission,
   type Role,
 } from "@/platform/rbac";
-import { APP_REGISTRY, BUSINESS_APPS, type RegisteredApp } from "@/platform/registry";
+import { BUSINESS_APPS, type RegisteredApp } from "@/platform/registry";
 import { getSession } from "@/platform/session";
 import { DataTable, type Column } from "@/platform/ui/data-table";
 import { PageHeader } from "@/platform/ui/page-header";
 import { Panel } from "@/platform/ui/panel";
 import { StatusBadge } from "@/platform/ui/status-badge";
 
-function accessLabel(app: RegisteredApp, role: Role) {
-  if (app.writePermissions.length === 0) return { label: "View", tone: "neutral" as const };
-  const granted = app.writePermissions.filter((permission) => can(role, permission));
-  if (granted.length === app.writePermissions.length)
-    return { label: "Full access", tone: "success" as const };
-  if (granted.length > 0) return { label: "Partial access", tone: "warning" as const };
-  return { label: "View only", tone: "neutral" as const };
+function actionAccess(app: RegisteredApp, role: Role) {
+  const total = app.writePermissions.length;
+  const granted = app.writePermissions.filter((permission) => can(role, permission)).length;
+  if (total === 0 || granted === 0) return { label: "View only", tone: "neutral" as const };
+  const noun = total === 1 ? "action" : "actions";
+  if (granted === total) return { label: `All ${total} ${noun}`, tone: "success" as const };
+  return { label: `${granted} of ${total} ${noun}`, tone: "warning" as const };
 }
 
 export default async function OverviewPage() {
@@ -32,15 +32,20 @@ export default async function OverviewPage() {
   const events = listAuditEvents();
   const activity = auditActivity(24);
 
-  const metrics = [
-    { label: "Registered applications", value: APP_REGISTRY.length, hint: "in the app registry" },
+  const metrics: { label: string; value: string | number; hint: string; href?: string }[] = [
+    { label: "KYC reviews", value: "—", hint: "Queue arrives with the KYC application" },
+    { label: "Refund requests", value: "—", hint: "Queue arrives with the Refunds application" },
     {
-      label: "Implemented",
-      value: APP_REGISTRY.filter((app) => app.status === "available").length,
-      hint: `of ${APP_REGISTRY.length} in this build`,
+      label: "Actions recorded (24h)",
+      value: activity.total,
+      hint: "Across all internal tools",
     },
-    { label: "Audited actions (24h)", value: activity.total, hint: "across all applications" },
-    { label: "Denied by RBAC (24h)", value: activity.denied, hint: "blocked server-side" },
+    {
+      label: "Blocked attempts (24h)",
+      value: activity.denied,
+      hint: "Refused by authorization",
+      href: "/audit?outcome=denied",
+    },
   ];
 
   const columns: Column<RegisteredApp>[] = [
@@ -60,20 +65,22 @@ export default async function OverviewPage() {
     },
     { key: "owner", header: "Owning team", cell: (app) => app.owner },
     {
-      key: "status",
-      header: "Build status",
+      key: "availability",
+      header: "Availability",
+      width: "w-[190px]",
       cell: (app) =>
         app.status === "available" ? (
-          <StatusBadge tone="success">Implemented</StatusBadge>
+          <span className="text-ink-muted">Available</span>
         ) : (
-          <StatusBadge tone="neutral">Not implemented</StatusBadge>
+          <StatusBadge tone="neutral">Coming in this prototype</StatusBadge>
         ),
     },
     {
       key: "access",
-      header: `Access as ${ROLE_LABELS[user.role]}`,
+      header: `You can (${ROLE_LABELS[user.role]})`,
+      width: "w-[150px]",
       cell: (app) => {
-        const access = accessLabel(app, user.role);
+        const access = actionAccess(app, user.role);
         return <StatusBadge tone={access.tone}>{access.label}</StatusBadge>;
       },
     },
@@ -82,64 +89,72 @@ export default async function OverviewPage() {
       header: "Open",
       headerSrOnly: true,
       align: "right",
-      width: "w-[80px]",
+      width: "w-[110px]",
       cell: (app) => (
         <Link
           href={app.href}
           className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline"
         >
-          Open
+          {app.status === "available" ? "Open" : "View scope"}
           <ArrowRight aria-hidden className="size-3.5" />
         </Link>
       ),
     },
   ];
 
-  const permissionGroups: { app: string; permissions: Permission[] }[] = BUSINESS_APPS.map(
-    (app) => ({
-      app: app.name,
-      permissions: app.writePermissions,
-    }),
-  );
+  const permissionGroups: { app: string; permissions: readonly Permission[] }[] =
+    BUSINESS_APPS.map((app) => ({ app: app.name, permissions: app.writePermissions }));
 
   return (
     <>
       <PageHeader
         title="Overview"
-        description="Shared operations console for Northlane internal tools. Applications register into one shell and inherit the same navigation, authorization and audit trail."
+        description={`Northlane operations console. Signed in as ${user.name}, ${ROLE_LABELS[user.role]}.`}
       />
 
       <div className="space-y-4 p-6">
         <div className="grid grid-cols-4 gap-px overflow-hidden rounded-[4px] border border-line bg-line">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="bg-surface px-4 py-3">
-              <p className="text-[11.5px] uppercase tracking-[0.05em] text-ink-muted">
-                {metric.label}
-              </p>
-              <p className="mt-1 text-[22px] font-semibold leading-7 text-ink tabular">
-                {metric.value}
-              </p>
-              <p className="text-[11.5px] text-ink-subtle">{metric.hint}</p>
-            </div>
-          ))}
+          {metrics.map((metric) => {
+            const body = (
+              <>
+                <p className="text-[11.5px] uppercase tracking-[0.05em] text-ink-muted">
+                  {metric.label}
+                </p>
+                <p className="mt-1 text-[22px] font-semibold leading-7 text-ink tabular">
+                  {metric.value}
+                </p>
+                <p className="text-[11.5px] text-ink-muted">{metric.hint}</p>
+              </>
+            );
+            return metric.href ? (
+              <Link
+                key={metric.label}
+                href={metric.href}
+                className="bg-surface px-4 py-3 hover:bg-accent-soft"
+              >
+                {body}
+              </Link>
+            ) : (
+              <div key={metric.label} className="bg-surface px-4 py-3">
+                {body}
+              </div>
+            );
+          })}
         </div>
 
-        <Panel
-          title="Applications"
-          description="Navigation, access checks and this table are all generated from the shared application registry."
-        >
+        <Panel title="Internal tools" description="Applications available to operations teams.">
           <DataTable
-            ariaLabel="Registered applications"
+            ariaLabel="Internal tools"
             columns={columns}
-            rows={APP_REGISTRY.filter((app) => app.id !== "overview")}
+            rows={[...BUSINESS_APPS]}
             getRowId={(app) => app.id}
           />
         </Panel>
 
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-4">
           <Panel
-            title={`Your permissions · ${ROLE_LABELS[user.role]}`}
-            description="Evaluated server-side before any state change."
+            title={`What you can do · ${ROLE_LABELS[user.role]}`}
+            description="Everyone can view every tool; roles differ on actions. Checked server-side before any change."
           >
             <ul className="divide-y divide-line border-t border-line">
               {permissionGroups.map((group) => (
@@ -156,9 +171,9 @@ export default async function OverviewPage() {
                           {allowed ? (
                             <Check aria-hidden className="size-3.5 text-success" />
                           ) : (
-                            <Minus aria-hidden className="size-3.5 text-ink-subtle" />
+                            <Minus aria-hidden className="size-3.5 text-ink-muted" />
                           )}
-                          <span className={allowed ? "text-ink" : "text-ink-subtle"}>
+                          <span className={allowed ? "text-ink" : "text-ink-muted"}>
                             {PERMISSION_LABELS[permission]}
                           </span>
                           <span className="sr-only">{allowed ? "allowed" : "not allowed"}</span>
@@ -172,8 +187,8 @@ export default async function OverviewPage() {
           </Panel>
 
           <Panel
-            title="Recent platform activity"
-            description="Every privileged action, including denied attempts."
+            title="Recent activity"
+            description="Every privileged action, including attempts that were blocked."
             actions={
               <Link
                 href="/audit"
@@ -186,7 +201,7 @@ export default async function OverviewPage() {
             <ul className="divide-y divide-line border-t border-line">
               {events.slice(0, 6).map((event) => (
                 <li key={event.id} className="flex items-baseline gap-3 px-4 py-2">
-                  <span className="w-[68px] shrink-0 text-[12px] text-ink-subtle tabular">
+                  <span className="w-[68px] shrink-0 text-[12px] text-ink-muted tabular">
                     {formatRelative(event.at)}
                   </span>
                   <span className="min-w-0 flex-1">

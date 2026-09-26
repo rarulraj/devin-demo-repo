@@ -10,7 +10,8 @@
   --color-line-strong: #cbd1d9;
   --color-ink: #10151c;
   --color-ink-muted: #5b6573;
-  --color-ink-subtle: #8a94a3;
+  /* Meets WCAG AA (>=4.5:1) on both surface and canvas; used for informational text. */
+  --color-ink-subtle: #667180;
   --color-accent: #1a4fa0;
   --color-accent-hover: #163f81;
   --color-accent-soft: #eaf0fa;

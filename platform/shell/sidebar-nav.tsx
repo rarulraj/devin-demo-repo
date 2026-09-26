@@ -15,7 +15,10 @@ export function SidebarNav() {
       </p>
       <ul className="space-y-0.5">
         {NAV_APPS.map((app) => {
-          const active = app.href === "/" ? pathname === "/" : pathname.startsWith(app.href);
+          const active =
+            app.href === "/"
+              ? pathname === "/"
+              : pathname === app.href || pathname.startsWith(`${app.href}/`);
           const Icon = app.icon;
           return (
             <li key={app.id}>
@@ -35,12 +38,12 @@ export function SidebarNav() {
                   className={cn("size-4 shrink-0", active ? "text-accent" : "text-ink-subtle")}
                 />
                 <span className="truncate">{app.name}</span>
-                {app.status === "not-implemented" ? (
+                {app.status === "planned" ? (
                   <span
-                    className="ml-auto rounded-[2px] border border-line-strong px-1 text-[10px] font-medium uppercase tracking-[0.04em] text-ink-subtle"
-                    title="Not implemented in this build"
+                    className="ml-auto rounded-[2px] border border-line-strong px-1 text-[10px] font-medium uppercase tracking-[0.04em] text-ink-muted"
+                    title="Coming in this prototype"
                   >
-                    Soon
+                    Planned
                   </span>
                 ) : null}
               </Link>

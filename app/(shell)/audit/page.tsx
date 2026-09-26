@@ -1,10 +1,10 @@
 import { ScrollText } from "lucide-react";
 import { Suspense } from "react";
 import { ensureSeedData } from "@/lib/data/seed";
-import { formatTimestamp } from "@/lib/utils";
+import { formatTimestamp, formatTimestampShort, humanizeState } from "@/lib/utils";
 import { listAuditEvents, type AuditEvent } from "@/platform/audit";
 import { ROLE_LABELS } from "@/platform/rbac";
-import { APP_REGISTRY, getApp } from "@/platform/registry";
+import { BUSINESS_APPS, appLabel } from "@/platform/registry";
 import { DataTable, type Column } from "@/platform/ui/data-table";
 import { EmptyState } from "@/platform/ui/empty-state";
 import { FilterBar } from "@/platform/ui/filter-bar";
@@ -16,17 +16,21 @@ const columns: Column<AuditEvent>[] = [
   {
     key: "at",
     header: "Timestamp",
-    width: "w-[172px]",
+    width: "w-[122px]",
     numeric: true,
-    cell: (event) => <span className="text-ink-muted">{formatTimestamp(event.at)}</span>,
+    cell: (event) => (
+      <span className="whitespace-nowrap text-ink-muted" title={formatTimestamp(event.at)}>
+        {formatTimestampShort(event.at)}
+      </span>
+    ),
   },
   {
     key: "actor",
     header: "Actor",
-    width: "w-[190px]",
+    width: "w-[145px]",
     cell: (event) => (
       <span>
-        <span className="block font-medium text-ink">{event.actor}</span>
+        <span className="block whitespace-nowrap font-medium text-ink">{event.actor}</span>
         <span className="block text-[12px] text-ink-muted">{ROLE_LABELS[event.role]}</span>
       </span>
     ),
@@ -34,26 +38,49 @@ const columns: Column<AuditEvent>[] = [
   {
     key: "app",
     header: "Application",
-    width: "w-[130px]",
-    cell: (event) => getApp(event.app).name,
+    width: "w-[105px]",
+    cell: (event) => appLabel(event.app),
   },
-  { key: "action", header: "Action", cell: (event) => event.action },
   {
-    key: "entity",
-    header: "Entity",
+    key: "action",
+    header: "Action",
+    width: "w-[160px]",
     cell: (event) => (
-      <span className="font-mono text-[12px] text-ink-muted">{event.entityLabel}</span>
+      <span>
+        <span className="block whitespace-nowrap">{event.action}</span>
+        {event.before && event.after ? (
+          <span className="block whitespace-nowrap text-[12px] text-ink-muted">
+            {humanizeState(event.before)} <span aria-hidden>→</span>{" "}
+            <span className="text-ink">{humanizeState(event.after)}</span>
+          </span>
+        ) : null}
+      </span>
     ),
   },
   {
-    key: "change",
-    header: "Change",
-    width: "w-[150px]",
+    key: "entity",
+    header: "Entity",
+    width: "w-[165px]",
+    cell: (event) => {
+      const [id, ...rest] = event.entityLabel.split(" · ");
+      return (
+        <span>
+          <span className="font-mono text-[12px] text-ink">{id}</span>
+          {rest.length > 0 ? (
+            <span className="block truncate text-[12px] text-ink-muted">{rest.join(" · ")}</span>
+          ) : null}
+        </span>
+      );
+    },
+  },
+  {
+    key: "reason",
+    header: "Reason",
+    width: "w-[240px]",
     cell: (event) =>
-      event.before && event.after ? (
-        <span className="text-[12px] text-ink-muted">
-          {event.before} <span aria-hidden>→</span>{" "}
-          <span className="text-ink">{event.after}</span>
+      event.reason ? (
+        <span className="line-clamp-2 text-[12.5px] text-ink-muted" title={event.reason}>
+          {event.reason}
         </span>
       ) : (
         <span className="text-ink-subtle">—</span>
@@ -63,12 +90,11 @@ const columns: Column<AuditEvent>[] = [
     key: "outcome",
     header: "Outcome",
     width: "w-[100px]",
-    cell: (event) =>
-      event.outcome === "success" ? (
-        <StatusBadge tone="success">Success</StatusBadge>
-      ) : (
-        <StatusBadge tone="danger">Denied</StatusBadge>
-      ),
+    cell: (event) => {
+      if (event.outcome === "success") return <StatusBadge tone="success">Success</StatusBadge>;
+      if (event.outcome === "denied") return <StatusBadge tone="danger">Denied</StatusBadge>;
+      return <StatusBadge tone="warning">Failed</StatusBadge>;
+    },
   },
 ];
 
@@ -98,7 +124,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
     <>
       <PageHeader
         title="Audit Log"
-        description="Append-only record written by the shared mutation path. Applications cannot change state without producing an entry here."
+        description="Who changed what, when, and why — recorded for every privileged action, including attempts that were blocked."
       />
       <div className="p-6">
         <Panel>
@@ -109,7 +135,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
                 {
                   key: "app",
                   label: "Application",
-                  options: APP_REGISTRY.filter((entry) => entry.id !== "overview").map((entry) => ({
+                  options: BUSINESS_APPS.map((entry) => ({
                     value: entry.id,
                     label: entry.name,
                   })),
@@ -120,6 +146,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
                   options: [
                     { value: "success", label: "Success" },
                     { value: "denied", label: "Denied" },
+                    { value: "error", label: "Failed" },
                   ],
                 },
               ]}

@@ -1,47 +1,22 @@
-import type { Permission, Role } from "./rbac";
-import type { AppId } from "./registry";
+import {
+  readAuditEvents,
+  resetAuditLog as resetStore,
+  seedAuditEvents as seedStore,
+  type AuditDraft,
+  type AuditEvent,
+} from "./internal/audit-store";
 
-export type AuditOutcome = "success" | "denied";
+export type { AuditEvent, AuditOutcome, AuditSource } from "./internal/audit-store";
 
-export type AuditEvent = {
-  id: string;
-  at: string;
-  actor: string;
-  role: Role;
-  app: AppId;
-  action: string;
-  permission: Permission;
-  entity: string;
-  entityLabel: string;
-  outcome: AuditOutcome;
-  reason?: string;
-  before?: string;
-  after?: string;
-};
-
-type AuditStore = { events: AuditEvent[]; sequence: number };
-
-const globalRef = globalThis as typeof globalThis & { __fintechOpsAudit?: AuditStore };
-
-function store(): AuditStore {
-  globalRef.__fintechOpsAudit ??= { events: [], sequence: 0 };
-  return globalRef.__fintechOpsAudit;
-}
-
-export function recordAudit(event: Omit<AuditEvent, "id" | "at">): AuditEvent {
-  const s = store();
-  s.sequence += 1;
-  const recorded: AuditEvent = {
-    ...event,
-    id: `evt_${String(s.sequence).padStart(5, "0")}`,
-    at: new Date().toISOString(),
-  };
-  s.events.unshift(recorded);
-  return recorded;
-}
-
+/**
+ * Public, read-only view of the audit ledger.
+ *
+ * There is deliberately no exported write function: entries are produced by the
+ * shared mutation path (platform/mutate.ts) so no application can record an
+ * action it did not actually perform, or perform one without recording it.
+ */
 export function listAuditEvents(): AuditEvent[] {
-  return [...store().events];
+  return readAuditEvents();
 }
 
 /** Counts for the Overview tiles, computed outside the render path. */
@@ -51,7 +26,7 @@ export function auditActivity(windowHours: number): {
   denied: number;
 } {
   const since = Date.now() - windowHours * 60 * 60 * 1000;
-  const events = store().events.filter((event) => new Date(event.at).getTime() >= since);
+  const events = readAuditEvents().filter((event) => new Date(event.at).getTime() >= since);
   return {
     events,
     total: events.length,
@@ -59,20 +34,12 @@ export function auditActivity(windowHours: number): {
   };
 }
 
-export function seedAuditEvents(events: Omit<AuditEvent, "id" | "at">[], startedAt: Date): void {
-  const s = store();
-  if (s.events.length > 0) return;
-  events.forEach((event, index) => {
-    s.sequence += 1;
-    s.events.unshift({
-      ...event,
-      id: `evt_${String(s.sequence).padStart(5, "0")}`,
-      at: new Date(startedAt.getTime() + index * 7 * 60_000).toISOString(),
-    });
-  });
+/** Demo fixtures only, so the prototype is never empty on first load. */
+export function seedAuditEvents(drafts: AuditDraft[], startedAt: Date): void {
+  seedStore(drafts, startedAt);
 }
 
 /** Test-only hook so invariant tests start from a clean ledger. */
 export function resetAuditLog(): void {
-  globalRef.__fintechOpsAudit = { events: [], sequence: 0 };
+  resetStore();
 }
