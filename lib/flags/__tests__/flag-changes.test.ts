@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getFlag, resetFlags } from "@/lib/data/flag-store";
+import { getFlag, listFlags, resetFlags } from "@/lib/data/flag-store";
+import { isPartialRollout, midRollout } from "@/lib/data/flag-types";
 import { changeFlag } from "@/lib/flags/changes";
 import { listAuditEvents, resetAuditLog } from "@/platform/audit";
 import type { Role } from "@/platform/rbac";
@@ -178,6 +179,22 @@ describe("roles without flag.update", () => {
       reason: "Requested during incident triage",
     });
     expect(events[0].after).toBeUndefined();
+  });
+});
+
+describe("mid-rollout definition", () => {
+  it("counts only production flags that are on and partially rolled out", () => {
+    const flags = listFlags();
+    const counted = midRollout(flags);
+
+    expect(counted.length).toBeGreaterThan(0);
+    expect(counted.every((flag) => flag.environment === "production")).toBe(true);
+    expect(counted.every((flag) => flag.enabled && flag.rollout > 0 && flag.rollout < 100)).toBe(
+      true,
+    );
+    expect(
+      flags.some((flag) => flag.environment === "staging" && isPartialRollout(flag)),
+    ).toBe(true);
   });
 });
 

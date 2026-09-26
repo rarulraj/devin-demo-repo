@@ -42,3 +42,12 @@ export function exposure(flag: FeatureFlag): string {
 export function isPartialRollout(flag: FeatureFlag): boolean {
   return flag.enabled && flag.rollout > MIN_ROLLOUT && flag.rollout < MAX_ROLLOUT;
 }
+
+/**
+ * "Mid-rollout" means one thing everywhere: a production flag that is on and
+ * serving neither nobody nor everybody. Staging experiments are excluded, so
+ * the Overview metric and the queue header always agree.
+ */
+export function midRollout(flags: FeatureFlag[]): FeatureFlag[] {
+  return flags.filter((flag) => isProduction(flag) && isPartialRollout(flag));
+}

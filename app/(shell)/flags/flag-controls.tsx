@@ -47,10 +47,10 @@ export function FlagControls({
   }
 
   const productionWarning = production
-    ? `${label} is live in production. This change takes effect immediately.`
+    ? `${label} is a production flag. This changes the simulated production configuration.`
     : undefined;
   const acknowledgeLabel = production
-    ? "I understand this changes production behaviour now"
+    ? "I understand this changes the simulated production configuration"
     : undefined;
   const parsedTarget = Number(target);
   const targetValid =
@@ -67,8 +67,8 @@ export function FlagControls({
           }
           description={
             canUpdate
-              ? `${flagKey} becomes ${enabled ? "unavailable to all traffic" : `available to ${rollout}% of traffic`}.`
-              : `Turning ${flagKey} ${enabled ? "off" : "on"} would change runtime behaviour. ${roleLabel} is not authorized, so the platform refuses this operation and the flag does not change.`
+              ? `${flagKey} is recorded as ${enabled ? "off" : `on at ${rollout}% rollout`}.`
+              : `Turning ${flagKey} ${enabled ? "off" : "on"} would change the recorded configuration. ${roleLabel} is not authorized, so the platform refuses this operation and the flag does not change.`
           }
           confirmLabel={
             canUpdate
@@ -107,8 +107,8 @@ export function FlagControls({
           title={canUpdate ? `Change rollout for ${label}` : "Rollout change is not available"}
           description={
             canUpdate
-              ? `${flagKey} moves from ${rollout}% to ${targetValid ? parsedTarget : rollout}% of eligible traffic.`
-              : `A rollout change on ${flagKey} would alter how much traffic sees this flag. ${roleLabel} is not authorized, so the platform refuses this operation and the flag does not change.`
+              ? `The recorded rollout for ${flagKey} moves from ${rollout}% to ${targetValid ? parsedTarget : rollout}%.`
+              : `A rollout change would alter the recorded configuration for ${flagKey}. ${roleLabel} is not authorized, so the platform refuses this operation and the flag does not change.`
           }
           confirmLabel={canUpdate ? "Change rollout" : "Attempt change"}
           reasonLabel="Change reason"
@@ -132,7 +132,7 @@ export function FlagControls({
 
       {enabled ? null : (
         <p className="text-[12px] text-ink-muted">
-          Rollout is stored while the flag is off and applies again when it is enabled.
+          Rollout is kept while the flag is off and applies again when it is enabled.
         </p>
       )}
 

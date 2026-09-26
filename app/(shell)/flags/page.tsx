@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { listFlags } from "@/lib/data/flag-store";
 import {
   FLAG_ENVIRONMENT_LABELS,
-  isPartialRollout,
   isProduction,
+  midRollout,
   type FeatureFlag,
   type FlagEnvironment,
 } from "@/lib/data/flag-types";
@@ -109,7 +109,7 @@ export default async function FlagsPage({ searchParams }: PageProps<"/flags">) {
   const filterQuery = queryString({ q: read("q"), environment, state });
   const production = all.filter(isProduction);
   const productionOn = production.filter((row) => row.enabled);
-  const partial = all.filter(isPartialRollout);
+  const partial = midRollout(all);
 
   return (
     <>
@@ -121,7 +121,7 @@ export default async function FlagsPage({ searchParams }: PageProps<"/flags">) {
             <StatusBadge tone="warning">
               {productionOn.length} of {production.length} production flags on
             </StatusBadge>
-            <StatusBadge tone="neutral">{partial.length} mid-rollout</StatusBadge>
+            <StatusBadge tone="neutral">{partial.length} production mid-rollout</StatusBadge>
             <span className="text-[12.5px] text-ink-muted">
               You are {user.name}, {ROLE_LABELS[user.role]}
             </span>

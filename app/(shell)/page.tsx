@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Minus } from "lucide-react";
 import Link from "next/link";
 import { listFlags } from "@/lib/data/flag-store";
-import { isPartialRollout, isProduction } from "@/lib/data/flag-types";
+import { isProduction, midRollout } from "@/lib/data/flag-types";
 import { listKycCases } from "@/lib/data/kyc-store";
 import { isOpen, riskLevel } from "@/lib/data/kyc-types";
 import { listRefunds } from "@/lib/data/refund-store";
@@ -41,9 +41,10 @@ export default async function OverviewPage() {
   const highRiskKyc = openKyc.filter((entry) => riskLevel(entry.riskScore) === "high");
   const pendingRefunds = listRefunds().filter(isPending);
   const pendingRefundValue = pendingRefunds.reduce((total, row) => total + row.amountMinor, 0);
-  const productionFlags = listFlags().filter(isProduction);
+  const flags = listFlags();
+  const productionFlags = flags.filter(isProduction);
   const productionFlagsOn = productionFlags.filter((flag) => flag.enabled);
-  const midRollout = productionFlags.filter(isPartialRollout);
+  const productionMidRollout = midRollout(flags);
 
   const metrics: { label: string; value: string | number; hint: string; href?: string }[] = [
     {
@@ -61,7 +62,7 @@ export default async function OverviewPage() {
     {
       label: "Production flags on",
       value: `${productionFlagsOn.length} of ${productionFlags.length}`,
-      hint: `${midRollout.length} mid-rollout`,
+      hint: `${productionMidRollout.length} mid-rollout`,
       href: "/flags?environment=production",
     },
     {

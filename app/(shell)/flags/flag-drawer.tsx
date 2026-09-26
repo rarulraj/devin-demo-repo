@@ -112,7 +112,8 @@ export function FlagDrawer({
           <p className="text-[12.5px] text-ink">{flag.description}</p>
           {isProduction(flag) ? (
             <p className="mt-2 text-[12.5px] text-ink-muted">
-              Changes here take effect immediately for live customers.
+              Changes here update the simulated production configuration. No live
+              customer traffic is evaluated against these flags.
             </p>
           ) : null}
         </Section>
