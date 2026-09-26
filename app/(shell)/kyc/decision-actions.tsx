@@ -12,9 +12,12 @@ type DecisionButton = {
   label: string;
   title: string;
   description: string;
+  deniedDescription: string;
   tone: "primary" | "danger";
   variant: "primary" | "secondary" | "danger";
   allowed: boolean;
+  warning?: string;
+  acknowledgeLabel?: string;
 };
 
 export function DecisionActions({
@@ -50,11 +53,17 @@ export function DecisionActions({
         {buttons.map((button) => (
           <ConfirmDialog
             key={button.decision}
-            title={button.title}
-            description={`${button.description} ${caseId} · ${customer}.`}
-            confirmLabel={button.label}
+            title={button.allowed ? button.title : `${button.label} is not available`}
+            description={
+              button.allowed
+                ? `${button.description} ${caseId} · ${customer}.`
+                : `${button.deniedDescription} ${caseId} · ${customer}. ${roleLabel} is not authorized, so the platform refuses this operation and the case does not change.`
+            }
+            confirmLabel={button.allowed ? button.label : `Attempt ${button.label.toLowerCase()}`}
             tone={button.tone}
             reasonLabel="Reviewer note"
+            warning={button.allowed ? button.warning : undefined}
+            acknowledgeLabel={button.allowed ? button.acknowledgeLabel : undefined}
             onConfirm={(reason) => run(button.decision, reason)}
             trigger={
               <Button variant={button.variant} size="md">

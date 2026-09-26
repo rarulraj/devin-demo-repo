@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertTriangle } from "lucide-react";
-import { useState, useTransition, type ReactNode } from "react";
+import { useId, useState, useTransition, type ReactNode } from "react";
 import { Button } from "./button";
 
 export type ConfirmResult = { ok: boolean; message?: string };
@@ -20,6 +20,8 @@ export function ConfirmDialog({
   tone = "primary",
   requireReason = true,
   reasonLabel = "Reason",
+  warning,
+  acknowledgeLabel,
   onConfirm,
 }: {
   trigger: ReactNode;
@@ -29,14 +31,22 @@ export function ConfirmDialog({
   tone?: "primary" | "danger";
   requireReason?: boolean;
   reasonLabel?: string;
+  warning?: string;
+  acknowledgeLabel?: string;
   onConfirm: (reason: string) => Promise<ConfirmResult>;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const acknowledgeId = useId();
 
   function submit() {
+    if (acknowledgeLabel && !acknowledged) {
+      setError("Confirm the unresolved verification checks before continuing.");
+      return;
+    }
     if (requireReason && reason.trim().length < 3) {
       setError("Enter a reason. It is stored on the audit record.");
       return;
@@ -46,6 +56,7 @@ export function ConfirmDialog({
       if (result.ok) {
         setOpen(false);
         setReason("");
+        setAcknowledged(false);
         setError(null);
       } else {
         setError(result.message ?? "The action could not be completed.");
@@ -60,6 +71,7 @@ export function ConfirmDialog({
         setOpen(next);
         if (!next) {
           setReason("");
+          setAcknowledged(false);
           setError(null);
         }
       }}
@@ -75,6 +87,26 @@ export function ConfirmDialog({
             </Dialog.Description>
           </div>
           <div className="space-y-2 px-4 py-3">
+            {warning ? (
+              <p className="flex items-start gap-1.5 rounded-[3px] border border-[#e6cfa8] bg-warning-soft px-2 py-1.5 text-[12.5px] text-warning">
+                <AlertTriangle aria-hidden className="mt-px size-3.5 shrink-0" />
+                {warning}
+              </p>
+            ) : null}
+            {acknowledgeLabel ? (
+              <div className="flex items-start gap-2">
+                <input
+                  id={acknowledgeId}
+                  type="checkbox"
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                  className="mt-0.5 size-3.5 shrink-0 accent-[#1f4fd8]"
+                />
+                <label htmlFor={acknowledgeId} className="text-[12.5px] text-ink">
+                  {acknowledgeLabel}
+                </label>
+              </div>
+            ) : null}
             {requireReason ? (
               <label className="block">
                 <span className="text-[12px] font-medium text-ink">{reasonLabel}</span>

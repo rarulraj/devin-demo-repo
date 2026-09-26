@@ -11,6 +11,7 @@ import { formatTimestamp, formatRelative } from "@/lib/utils";
 import { ROLE_LABELS, can, type Role } from "@/platform/rbac";
 import { Button } from "@/platform/ui/button";
 import { DecisionActions } from "./decision-actions";
+import { DrawerFocus } from "./drawer-focus";
 import { RiskTag, CheckIcon, StatusTag } from "./indicators";
 
 const DECISION_BUTTONS = [
@@ -19,6 +20,7 @@ const DECISION_BUTTONS = [
     label: "Approve",
     title: "Approve this case",
     description: "The customer is onboarded and the decision is recorded against",
+    deniedDescription: "An approval would onboard the customer on",
     tone: "primary" as const,
     variant: "primary" as const,
     permission: "kyc.approve" as const,
@@ -26,8 +28,10 @@ const DECISION_BUTTONS = [
   {
     decision: "escalate" as const,
     label: "Escalate",
-    title: "Escalate for enhanced due diligence",
-    description: "A senior reviewer picks up",
+    title: "Escalate for additional review",
+    description:
+      "The case is marked Escalated and stays open for additional review. Nothing is reassigned:",
+    deniedDescription: "An escalation would mark the case Escalated for additional review:",
     tone: "primary" as const,
     variant: "secondary" as const,
     permission: "kyc.escalate" as const,
@@ -37,6 +41,7 @@ const DECISION_BUTTONS = [
     label: "Reject",
     title: "Reject this case",
     description: "Onboarding is refused for",
+    deniedDescription: "A rejection would refuse onboarding for",
     tone: "danger" as const,
     variant: "danger" as const,
     permission: "kyc.reject" as const,
@@ -46,7 +51,7 @@ const DECISION_BUTTONS = [
 const DONE_MESSAGES: Record<KycDecision, string> = {
   approve: "Case approved",
   reject: "Case rejected",
-  escalate: "Case escalated for enhanced due diligence",
+  escalate: "Case escalated for additional review",
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -81,9 +86,25 @@ export function CaseDrawer({
   done?: KycDecision;
 }) {
   const open = isOpen(kycCase);
+  const unresolved = kycCase.checks.filter((check) => check.state !== "passed");
+  const unresolvedSummary = unresolved
+    .map((check) => `${check.label}: ${CHECK_STATE_LABELS[check.state]}`)
+    .join(", ");
   const buttons = DECISION_BUTTONS.map((button) => ({
     ...button,
     allowed: can(role, button.permission),
+    variant:
+      button.decision === "approve" && unresolved.length > 0
+        ? ("secondary" as const)
+        : button.variant,
+    warning:
+      button.decision === "approve" && unresolved.length > 0
+        ? `${unresolved.length} verification ${unresolved.length === 1 ? "check is" : "checks are"} unresolved — ${unresolvedSummary}. Approving does not clear them.`
+        : undefined,
+    acknowledgeLabel:
+      button.decision === "approve" && unresolved.length > 0
+        ? "I am approving with unresolved verification checks."
+        : undefined,
   }));
   const canDecide = buttons.some((button) => button.allowed);
 
@@ -92,13 +113,17 @@ export function CaseDrawer({
       aria-label={`Case ${kycCase.id}`}
       className="fixed right-0 top-12 z-30 flex h-[calc(100%-3rem)] w-[540px] flex-col border-l border-line bg-surface shadow-[-8px_0_24px_-16px_rgba(15,23,42,0.35)]"
     >
+      <DrawerFocus caseId={kycCase.id} />
       <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[12px] text-ink-muted">{kycCase.id}</span>
             <StatusTag status={kycCase.status} />
           </div>
-          <h2 className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">
+          <h2
+            tabIndex={-1}
+            className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.01em] text-ink outline-none"
+          >
             {kycCase.customer}
           </h2>
         </div>
