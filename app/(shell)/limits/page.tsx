@@ -111,6 +111,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limits">)
   const request = read("request");
   const selectedId = read("account");
   const done = read("done");
+  const doneRef = read("ref");
 
   const user = await getSession();
   const all = listAccounts();
@@ -205,6 +206,7 @@ export default async function LimitsPage({ searchParams }: PageProps<"/limits">)
           role={user.role}
           closeHref={`/limits${filterQuery}`}
           done={done || undefined}
+          doneRef={doneRef || undefined}
         />
       ) : null}
     </>

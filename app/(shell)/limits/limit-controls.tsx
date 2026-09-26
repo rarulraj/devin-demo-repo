@@ -38,10 +38,12 @@ export function LimitControls({
   const searchParams = useSearchParams();
   const [target, setTarget] = useState(String(currentLimitMinor / 100));
 
-  function finish(done: string) {
+  /** `ref` is what the audit entry is filed under, so the success link finds it. */
+  function finish(done: string, ref: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("account", accountId);
     params.set("done", done);
+    params.set("ref", ref);
     router.replace(`${pathname}?${params}`, { scroll: false });
   }
 
@@ -52,7 +54,7 @@ export function LimitControls({
     }
     const result = await submitLimitRequest(accountId, minor, justification);
     if (!result.ok) return { ok: false, message: result.message };
-    finish("request");
+    finish("request", accountId);
     return { ok: true };
   }
 
@@ -60,7 +62,7 @@ export function LimitControls({
     if (!pending) return { ok: false, message: "There is no open request to decide." };
     const result = await submitLimitDecision(pending.id, decision, reason);
     if (!result.ok) return { ok: false, message: result.message };
-    finish(decision);
+    finish(decision, pending.id);
     return { ok: true };
   }
 

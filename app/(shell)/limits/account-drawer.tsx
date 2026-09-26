@@ -45,12 +45,15 @@ export function AccountDrawer({
   role,
   closeHref,
   done,
+  doneRef,
 }: {
   account: Account;
   requests: LimitRequest[];
   role: Role;
   closeHref: string;
   done?: string;
+  /** Entity the audit entry for `done` is filed under. */
+  doneRef?: string;
 }) {
   const pending = requests.find((entry) => entry.status === "pending");
   const history = requests.filter((entry) => entry.status !== "pending");
@@ -90,7 +93,7 @@ export function AccountDrawer({
             <span>
               {DONE_MESSAGES[done] ?? "Change recorded"}. The action and your reason are in the{" "}
               <Link
-                href={`/audit?q=${account.id}`}
+                href={`/audit?q=${doneRef ?? account.id}`}
                 className="font-medium underline underline-offset-2"
               >
                 audit log
@@ -174,6 +177,7 @@ export function AccountDrawer({
 
       <footer className="border-t border-line bg-canvas px-4 py-3">
         <LimitControls
+          key={`${account.id}:${account.dailyLimitMinor}`}
           accountId={account.id}
           accountLabel={account.customer}
           currentLimitMinor={account.dailyLimitMinor}
