@@ -66,8 +66,8 @@ export function ConfirmDialog({
     >
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-ink/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[4px] border border-line bg-surface shadow-lg">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/30" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[4px] border border-line bg-surface shadow-lg">
           <div className="border-b border-line px-4 py-3">
             <Dialog.Title className="text-[14px] font-semibold text-ink">{title}</Dialog.Title>
             <Dialog.Description className="mt-1 text-[12.5px] text-ink-muted">

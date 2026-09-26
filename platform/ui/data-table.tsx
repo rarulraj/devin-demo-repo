@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +20,17 @@ export function DataTable<T>({
   getRowId,
   empty,
   ariaLabel,
+  rowHref,
+  selectedRowId,
 }: {
   columns: Column<T>[];
   rows: T[];
   getRowId: (row: T) => string;
   empty?: ReactNode;
   ariaLabel: string;
+  /** Makes rows navigable; the first cell carries the accessible link. */
+  rowHref?: (row: T) => string;
+  selectedRowId?: string;
 }) {
   if (rows.length === 0 && empty) {
     return <div className="border-t border-line">{empty}</div>;
@@ -51,25 +57,49 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={getRowId(row)}
-              className="border-b border-line last:border-b-0 hover:bg-canvas"
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.key}
-                  className={cn(
-                    "px-3 py-2 align-middle",
-                    column.align === "right" ? "text-right" : "text-left",
-                    column.numeric && "tabular",
-                  )}
-                >
-                  {column.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const id = getRowId(row);
+            const href = rowHref?.(row);
+            return (
+              <tr
+                key={id}
+                aria-current={selectedRowId === id ? "true" : undefined}
+                className={cn(
+                  "border-b border-line last:border-b-0",
+                  selectedRowId === id ? "bg-accent-soft" : "hover:bg-canvas",
+                )}
+              >
+                {columns.map((column, index) => {
+                  const content = column.cell(row);
+                  return (
+                    <td
+                      key={column.key}
+                      className={cn(
+                        "align-middle",
+                        href ? "p-0" : "px-3 py-2",
+                        column.align === "right" ? "text-right" : "text-left",
+                        column.numeric && "tabular",
+                      )}
+                    >
+                      {href ? (
+                        <Link
+                          href={href}
+                          scroll={false}
+                          tabIndex={index === 0 ? undefined : -1}
+                          aria-hidden={index === 0 ? undefined : true}
+                          className="block px-3 py-2"
+                        >
+                          {content}
+                        </Link>
+                      ) : (
+                        content
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

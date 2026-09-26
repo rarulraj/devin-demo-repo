@@ -1,5 +1,7 @@
 import { ArrowRight, Check, Minus } from "lucide-react";
 import Link from "next/link";
+import { listKycCases } from "@/lib/data/kyc-store";
+import { isOpen, riskLevel } from "@/lib/data/kyc-types";
 import { ensureSeedData } from "@/lib/data/seed";
 import { formatRelative } from "@/lib/utils";
 import { auditActivity, listAuditEvents } from "@/platform/audit";
@@ -31,9 +33,16 @@ export default async function OverviewPage() {
   const user = await getSession();
   const events = listAuditEvents();
   const activity = auditActivity(24);
+  const openKyc = listKycCases().filter(isOpen);
+  const highRiskKyc = openKyc.filter((entry) => riskLevel(entry.riskScore) === "high");
 
   const metrics: { label: string; value: string | number; hint: string; href?: string }[] = [
-    { label: "KYC reviews", value: "—", hint: "Queue arrives with the KYC application" },
+    {
+      label: "KYC awaiting review",
+      value: openKyc.length,
+      hint: `${highRiskKyc.length} high risk`,
+      href: "/kyc",
+    },
     { label: "Refund requests", value: "—", hint: "Queue arrives with the Refunds application" },
     {
       label: "Actions recorded (24h)",

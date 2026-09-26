@@ -50,7 +50,7 @@ export const APP_REGISTRY = [
     owner: "Financial Crime Ops",
     kind: "business",
     writePermissions: ["kyc.approve", "kyc.reject", "kyc.escalate"],
-    status: "planned",
+    status: "available",
   },
   {
     id: "refunds",

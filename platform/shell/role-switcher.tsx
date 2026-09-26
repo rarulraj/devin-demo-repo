@@ -33,7 +33,7 @@ export function RoleSwitcher({ user }: { user: SimulatedUser }) {
         <DropdownMenu.Content
           align="end"
           sideOffset={4}
-          className="w-72 rounded-[4px] border border-line bg-surface p-1 shadow-lg"
+          className="z-50 w-72 rounded-[4px] border border-line bg-surface p-1 shadow-lg"
         >
           <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-subtle">
             Simulate role
