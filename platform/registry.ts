@@ -72,7 +72,7 @@ export const APP_REGISTRY = [
     owner: "Platform Engineering",
     kind: "business",
     writePermissions: ["flag.update"],
-    status: "planned",
+    status: "available",
   },
   {
     id: "audit",

@@ -20,8 +20,8 @@ const DECISION_BUTTONS = [
     decision: "approve" as const,
     label: "Approve",
     title: "Approve this refund",
-    description: "The refund is authorized and returned to the customer for",
-    deniedDescription: "An approval would return the money to the customer on",
+    description: "Records a refund authorization for",
+    deniedDescription: "An approval would record a refund authorization for",
     tone: "primary" as const,
     variant: "primary" as const,
     permission: "refund.approve" as const,
@@ -39,7 +39,7 @@ const DECISION_BUTTONS = [
 ];
 
 const DONE_MESSAGES: Record<RefundDecision, string> = {
-  approve: "Refund approved",
+  approve: "Refund authorization recorded",
   reject: "Refund rejected",
 };
 

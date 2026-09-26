@@ -44,7 +44,7 @@ export function ConfirmDialog({
 
   function submit() {
     if (acknowledgeLabel && !acknowledged) {
-      setError("Confirm the unresolved verification checks before continuing.");
+      setError("Tick the acknowledgement above before continuing.");
       return;
     }
     if (requireReason && reason.trim().length < 3) {
